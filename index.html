@@ -78,6 +78,8 @@
 
         
             <li><a href="Debug.html">Debug</a></li>
+        
+            <li><a href="Intro.html">Intro</a></li>
          
 
       </ul>
@@ -99,6 +101,137 @@
 	<div class="large-8 medium-8 columns">
 		<div class="markdown-body home-categories">
 		
+			<div class="article">
+                <a class="clearlink" href="15577602074843.html">
+                
+                  <h1>Intro to Tekton</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<p>Kubernetes-native CI/CD building blocks.</p>
+
+<h2 id="toc_0">Install</h2>
+
+<ol>
+<li>获取一个 Kubernetes 集群，可以通过:
+<ul>
+<li>谷歌云上创建一个 <a href="https://cloud.google.com/kubernetes-engine/">GKE</a> 集群</li>
+<li><a href="https://www.katacoda.com/courses/kubernetes/playground">k8s playground</a> 可以快速测试</li>
+<li><a href="https://docs.docker.com/docker-for-mac/kubernetes/">docker for mac/windows</a> 新版的 docker 提供了一个 Kubernetes 集群，可以用于本地测试</li>
+<li><a href="https://github.com/kubernetes-sigs/kind">kind</a> Kubernetes IN Docker 可以快速构建和安装 Kubernetes 集群，用于自动化测试</li>
+</ul></li>
+<li>（确保当前操作的用户有 cluster-admin 权限）</li>
+<li>安装 Tekton: <code>kubectl apply --filename https://storage.googleapis.com/tekton-releases/latest/release.yaml</code></li>
+</ol>
+
+<h2 id="toc_1">Core concepts</h2>
+
+<p><strong><a href="https://github.com/tektoncd/pipeline/blob/master/docs/tasks.md">Task</a></strong>: 作为 <code>pipeline</code> 的基本单位，定义了一组需要运行的操作(<code>steps</code>)；可以多个 task 组成 pipeline，也可以独立运行</p>
+
+<p><strong><a href="https://github.com/tektoncd/pipeline/blob/master/docs/pipelines.md">Pipeline</a></strong>: 用来编排一个或多个 <code>task</code>，并配置运行 <code>task</code> 需要的资源以及参数</p>
+
+<p><strong><a href="https://github.com/tektoncd/pipeline/blob/master/docs/taskruns.md">TaskRun</a></strong>: 用来关联和触发运行 <code>task</code></p>
+
+<p><strong><a href="https://github.com/tektoncd/pipeline/blob/master/docs/pipelineruns.md">PipelineRun</a></strong>: 用来关联和触发运行 <code>pipeline</code></p>
+
+<p><strong><a href="https://github.com/tektoncd/pipeline/blob/master/docs/resources.md">PipelineResource</a></strong>: 用来定义执行 <code>task</code> 或者 <code>pipeline</code> 时需要的资源，比如 git repo，镜像等</p>
+
+<h2 id="toc_2">Workflow</h2>
+
+<ol>
+<li>定义自己的 Task，包括定义具体要运行的操作（<code>steps</code>），输入输出，数据卷和容器模板
+<ul>
+<li><code>steps</code> 提供了一个运行的容器环境，以及需要进行的操作；一个 <code>task</code> 可以有多个 <code>step</code>，每一个 <code>step</code> 顺序执行</li>
+<li><code>inputs</code>/<code>outputs</code> 提供了执行流水线时需要的资源及变量配置，比如可以预先拉取好 git repo，build 镜像等</li>
+<li><code>volumes</code> 提供数据卷给构建的容器使用，可以用于存储或者传递数据等，或者读取配置文件</li>
+<li><code>containerTemplate</code> 提供模板的功能，比如定义环境变量，可以作用于每一个 step 的执行环境中</li>
+</ul></li>
+<li>创建 <code>TaskRun</code> 来关联和触发定义好的 <code>Task</code>
+<ul>
+<li>可以通过 <code>taskRef</code> 的方式来管理 <code>task</code>；或者直接通过 <code>inline</code> 的模式，定义 <code>task</code> 的 <code>taskSpec</code></li>
+<li>可以指定 <code>serviceAccount</code> 来用于做认证（比如拉取 git 仓库的代码）；未指定时，默认使用当前 namespace 的 default service account</li>
+<li>可以指定 <code>timeout</code> 来配置超时时间</li>
+<li><code>inputs</code>/<code>outputs</code> 定义执行 <code>task</code> 时的变量以及资源</li>
+<li>可以通过修改 <code>status</code> 为 <code>TaskRunCancelled</code> 来取消任务</li>
+</ul></li>
+<li>也可以定义自己的 <code>Pipeline</code>，通过流水线来编排多个 <code>task</code>
+<ul>
+<li><code>resources</code> 定义了执行 <code>pipeline</code> 时用到的资源</li>
+<li><code>tasks</code> 定义了流水线要执行的任务以及任务的编排关系</li>
+<li>通过 <code>from</code> 或 <code>runAfter</code> 可以隐示或者显示的定义执行的任务顺序</li>
+<li>没有依赖或者顺序相关的任务，会并行执行</li>
+<li><code>retries</code> 定义了任务失败时重试的次数，比如临时网络中断造成的构建失败；默认是不重试的</li>
+</ul></li>
+<li>创建 <code>PipelineRun</code> 来关联和触发定义好的 <code>Pipeline</code>
+<ul>
+<li>通过 <code>pipelineRef</code> 来管理 <code>pipeline</code></li>
+<li>可以指定 <code>serviceAccount</code> 来用于做认证（比如拉取 git 仓库的代码）；未指定时，默认使用当前 namespace 的 default service account</li>
+<li>可以指定 <code>timeout</code> 来配置超时时间</li>
+<li>可以指定 <code>resources</code> 来定义执行 <code>pipeline</code> 时用到的资源</li>
+<li>可以通过修改 <code>status</code> 为 <code>PipelineRunCancelled</code> 来取消流水线</li>
+</ul></li>
+</ol>
+
+<h2 id="toc_3">Auth</h2>
+
+<p>可以通过配置 <code>ServiceAccount</code> 以及关联的 <code>secret</code> 的方式，来方便配置用于访问 git 或者 docker 镜像仓库的认证信息。基本流程如下：</p>
+
+<ol>
+<li>创建一个 <code>ServiceAccount</code>，包含了用到的认证资源信息，通过给出 secret name 的方式，与实际的 auth 配置绑定</li>
+<li>创建 <code>secret</code> ，包含 <code>basic-auth</code> 和 <code>ssh-auth</code> 两种方式，提供用于登陆镜像仓库或者访问 git 仓库需要的用户名密码信息；或者提供用于访问git 仓库的 ssh key 信息</li>
+<li>在创建 <code>TaskRun</code> 或者 <code>PipelineRun</code> 时，指定使用的 <code>ServiceAccount</code>。在后续执行 <code>task</code> 时，会在执行 <code>task</code> 前，预先把认证的配置文件，放置到运行的容器环境中</li>
+<li>在执行 <code>task</code> 时，直接拉去代码仓库或者镜像仓库即可 </li>
+</ol>
+
+<h2 id="toc_4">In one map</h2>
+
+<p><img src="media/15575319484864/tekton-one-map.png" alt="tekton-one-map"/></p>
+
+<h2 id="toc_5">Demo(TODO)</h2>
+
+<h3 id="toc_6">build tekton with tekton</h3>
+
+<h3 id="toc_7">build k8s from source and run conformance test with tekton and kind</h3>
+
+<h2 id="toc_8">Anything except the tekton core</h2>
+
+<ul>
+<li>UI: 提供创建和管理的界面 e.g. <a href="https://github.com/tektoncd/dashboard">dashboard</a></li>
+<li>多租户: 支持不同用户、不同租户的权限控制和管理</li>
+<li>资源 qos: 限制资源消耗，保证集群稳定性</li>
+<li>API: 提供 api 接口供外部调用，比如使用 <a href="https://github.com/caicloud/nirvana">nirvana</a></li>
+<li>trigger: 支持 github gitlib 条件或者手动触发</li>
+<li>plugin: 支持 plugin 功能以支持更多的需求，比如 svn 的处理</li>
+</ul>
+
+<h2 id="toc_9">Next</h2>
+
+<p><a href="https://github.com/caicloud/cyclone">cyclone</a></p>
+
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2019/5/13</span>
+                    <span>posted in&nbsp;</span> 
+          				  
+          					    <span class="posted-in"><a href='Intro.html'>Intro</a></span>
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
+
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
 			<div class="article">
                 <a class="clearlink" href="15463555031437.html">
                 
@@ -494,6 +627,8 @@ Switched from 1 to 89 (thread 7016)
       	<p class="cat-list">
         
             <a href="Debug.html"><strong>Debug</strong></a>
+        
+            <a href="Intro.html"><strong>Intro</strong></a>
          
         </p>
 
@@ -508,6 +643,12 @@ Switched from 1 to 89 (thread 7016)
                 <div class="side-content">
                 <ul class="posts-list">
 	      
+		      
+			      <li class="post">
+			        <a href="15577602074843.html">Intro to Tekton</a>
+			      </li>
+		     
+		  
 		      
 			      <li class="post">
 			        <a href="15463555031437.html">Debug for go program (kubelet open random port)</a>
