@@ -1,8 +1,11 @@
 # Schrodinger
 Schrödinger's Cat
 
-## 踩坑系列
+## Debug
 
 - [Debug for go program (kubelet open random port)](./md/debug/kubelet-random-port.md)
 
-## 幻想系列
+## Intro
+
+- [Intro to Tekton](./md/intro/intro-to-tekton.md)
+- [Intro to Kind](./md/intro/intro-to-kind.md)
